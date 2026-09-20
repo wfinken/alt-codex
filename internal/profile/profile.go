@@ -1,0 +1,206 @@
+// Package profile manages alt-codex profile metadata (FR-01, FR-03).
+// Secret material never lives here — see internal/secret for that half
+// of the split that keeps NFR-03 (no plaintext secrets on disk) true.
+package profile
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"sort"
+	"time"
+
+	"github.com/wfinken/alt-codex/internal/paths"
+)
+
+// CredentialType describes how a profile's stored secret should be applied
+// to the local Codex CLI configuration when the profile is activated.
+type CredentialType string
+
+const (
+	// TypeAPIKey stores a bare API key/token string.
+	TypeAPIKey CredentialType = "api_key"
+	// TypeRawJSON stores a full, pre-formatted Codex auth.json payload.
+	TypeRawJSON CredentialType = "raw_json"
+)
+
+// Profile is a single named Codex account's metadata. The secret itself is
+// stored out-of-band (OS keychain or encrypted fallback) and referenced here
+// only by the profile Name, which doubles as the secret store's lookup key.
+type Profile struct {
+	Name      string         `json:"name"`
+	Type      CredentialType `json:"type"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	// LastSwitchedAt is zero if the profile has never been made active.
+	LastSwitchedAt time.Time `json:"last_switched_at,omitempty"`
+	// ExpiresAt is optional, user-supplied metadata (e.g. a known corporate
+	// token rotation date) used to render the "Expired" dashboard badge.
+	// alt-codex has no way to query Codex itself for token liveness.
+	ExpiresAt *time.Time `json:"expires_at,omitempty"`
+}
+
+// Status summarizes a profile's dashboard badge.
+type Status string
+
+const (
+	StatusActive  Status = "Active"
+	StatusExpired Status = "Expired"
+	StatusSaved   Status = "Saved"
+)
+
+// StatusOf reports p's dashboard badge given the store's active profile name.
+func (p Profile) StatusOf(activeName string) Status {
+	switch {
+	case p.Name == activeName:
+		return StatusActive
+	case p.ExpiresAt != nil && p.ExpiresAt.Before(time.Now()):
+		return StatusExpired
+	default:
+		return StatusSaved
+	}
+}
+
+type document struct {
+	Active   string    `json:"active"`
+	Profiles []Profile `json:"profiles"`
+}
+
+// Store persists profile metadata to profiles.json (FR-03).
+type Store struct {
+	path string
+}
+
+// NewStore opens (without yet reading) the profile store at its default path.
+func NewStore() (*Store, error) {
+	p, err := paths.ProfilesFile()
+	if err != nil {
+		return nil, err
+	}
+	return &Store{path: p}, nil
+}
+
+func (s *Store) load() (document, error) {
+	doc := document{}
+	b, err := os.ReadFile(s.path)
+	if os.IsNotExist(err) {
+		return doc, nil
+	}
+	if err != nil {
+		return doc, err
+	}
+	if len(b) == 0 {
+		return doc, nil
+	}
+	if err := json.Unmarshal(b, &doc); err != nil {
+		return doc, fmt.Errorf("parse %s: %w", s.path, err)
+	}
+	return doc, nil
+}
+
+func (s *Store) save(doc document) error {
+	sort.Slice(doc.Profiles, func(i, j int) bool {
+		return doc.Profiles[i].Name < doc.Profiles[j].Name
+	})
+	b, err := json.MarshalIndent(doc, "", "  ")
+	if err != nil {
+		return err
+	}
+	tmp := s.path + ".tmp"
+	if err := os.WriteFile(tmp, b, 0o600); err != nil {
+		return err
+	}
+	return os.Rename(tmp, s.path)
+}
+
+// List returns all profiles and the name of the active profile (which may
+// be empty if none has been activated yet).
+func (s *Store) List() ([]Profile, string, error) {
+	doc, err := s.load()
+	if err != nil {
+		return nil, "", err
+	}
+	return doc.Profiles, doc.Active, nil
+}
+
+// Get returns the profile with the given name.
+func (s *Store) Get(name string) (Profile, error) {
+	doc, err := s.load()
+	if err != nil {
+		return Profile{}, err
+	}
+	for _, p := range doc.Profiles {
+		if p.Name == name {
+			return p, nil
+		}
+	}
+	return Profile{}, fmt.Errorf("no profile named %q", name)
+}
+
+// Add inserts a new profile. It returns an error if the name is already taken.
+func (s *Store) Add(name string, typ CredentialType, expiresAt *time.Time) (Profile, error) {
+	doc, err := s.load()
+	if err != nil {
+		return Profile{}, err
+	}
+	for _, p := range doc.Profiles {
+		if p.Name == name {
+			return Profile{}, fmt.Errorf("profile %q already exists", name)
+		}
+	}
+	now := time.Now().UTC()
+	p := Profile{Name: name, Type: typ, CreatedAt: now, UpdatedAt: now, ExpiresAt: expiresAt}
+	doc.Profiles = append(doc.Profiles, p)
+	if err := s.save(doc); err != nil {
+		return Profile{}, err
+	}
+	return p, nil
+}
+
+// SetActive marks name as the active profile (FR-04, FR-05).
+func (s *Store) SetActive(name string) error {
+	doc, err := s.load()
+	if err != nil {
+		return err
+	}
+	found := false
+	now := time.Now().UTC()
+	for i, p := range doc.Profiles {
+		if p.Name == name {
+			doc.Profiles[i].LastSwitchedAt = now
+			found = true
+		}
+	}
+	if !found {
+		return fmt.Errorf("no profile named %q", name)
+	}
+	doc.Active = name
+	return s.save(doc)
+}
+
+// Remove deletes the named profile's metadata. If it was the active profile,
+// the store's active pointer is cleared. Removing the associated secret from
+// the secret store is the caller's responsibility (FR-08).
+func (s *Store) Remove(name string) error {
+	doc, err := s.load()
+	if err != nil {
+		return err
+	}
+	out := doc.Profiles[:0]
+	found := false
+	for _, p := range doc.Profiles {
+		if p.Name == name {
+			found = true
+			continue
+		}
+		out = append(out, p)
+	}
+	if !found {
+		return fmt.Errorf("no profile named %q", name)
+	}
+	doc.Profiles = out
+	if doc.Active == name {
+		doc.Active = ""
+	}
+	return s.save(doc)
+}

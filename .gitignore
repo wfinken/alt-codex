@@ -1,0 +1,21 @@
+# Build artifacts
+/alt-codex
+/dist/
+*.exe
+*.test
+
+# Go
+*.prof
+
+# alt-codex runtime data (never commit secrets/config)
+config.enc
+.secret.key
+profiles.json
+
+# OS cruft
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+*.swp
