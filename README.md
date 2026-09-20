@@ -45,6 +45,10 @@ CLI and gives every account a name, a badge, and a single keystroke.
 - 🧭 **Full keyboard control** — arrow keys or vim motions (`j`/`k`), your call.
 - ➕ **Guided onboarding** — an in-TUI form validates a new token before it's
   ever saved.
+- 🔑 **Sign in with ChatGPT** — no API key? No problem. `ctrl+l` in the add
+  form runs the real Codex CLI's own OAuth device-code login for you and
+  captures the resulting credential automatically — perfect for work
+  accounts that only have a ChatGPT/Codex seat, not API access.
 - 🗑️ **Safe deletion** — deleting your *active* profile prompts an extra
   confirmation so you don't lock yourself out mid-task.
 - 🖥️ **Cross-platform** — macOS, Linux, and Windows.
@@ -83,8 +87,12 @@ alt-codex
 | `q`           | Quit                              |
 | `esc`         | Back / cancel                    |
 
-When adding a profile, `tab`/`shift+tab` move between fields and `ctrl+t`
-toggles between a bare API key and a full pasted `auth.json` payload.
+When adding a profile, `tab`/`shift+tab` move between fields, `ctrl+t`
+toggles between a bare API key and a full pasted `auth.json` payload, and
+`ctrl+l` signs in with the real Codex CLI (requires `codex` on your `PATH`)
+and fills the credential in for you — no copy-paste required. It runs under
+an isolated, throwaway `CODEX_HOME` so it never disturbs whatever account
+your normal `codex` commands are currently using.
 
 ## How it works
 

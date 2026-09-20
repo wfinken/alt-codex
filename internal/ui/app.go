@@ -163,9 +163,15 @@ func (m Model) updateDashboard(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) updateAdd(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if km, ok := msg.(tea.KeyMsg); ok && km.String() == "esc" && !m.form.submitting {
-		m.view = viewDashboard
-		return m, nil
+	if km, ok := msg.(tea.KeyMsg); ok && km.String() == "esc" {
+		if m.form.loggingIn {
+			m.form.cancelLogin()
+			return m, nil
+		}
+		if !m.form.submitting {
+			m.view = viewDashboard
+			return m, nil
+		}
 	}
 
 	var cmd tea.Cmd
