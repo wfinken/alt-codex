@@ -60,6 +60,15 @@ CLI and gives every account a name, a badge, and a single keystroke.
 brew install wfinken/tap/alt-codex
 ```
 
+### APT (Debian/Ubuntu)
+
+```sh
+curl -fsSL https://wfinken.github.io/alt-codex/apt/gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/alt-codex.gpg
+echo "deb [signed-by=/usr/share/keyrings/alt-codex.gpg] https://wfinken.github.io/alt-codex/apt/ /" | sudo tee /etc/apt/sources.list.d/alt-codex.list
+sudo apt update
+sudo apt install alt-codex
+```
+
 ### Go
 
 ```sh
