@@ -47,7 +47,7 @@ CLI and gives every account a name, a badge, and a single keystroke.
 - ➕ **Guided onboarding** — an in-TUI form validates a new token before it's
   ever saved.
 - 🔑 **Sign in with ChatGPT** — no API key? No problem. `ctrl+l` in the add
-  form runs the real Codex CLI's own OAuth device-code login for you and
+  form runs the real Codex CLI's own browser-based OAuth login for you and
   captures the resulting credential automatically — perfect for work
   accounts that only have a ChatGPT/Codex seat, not API access.
 - 🗑️ **Safe deletion** — deleting your *active* profile prompts an extra

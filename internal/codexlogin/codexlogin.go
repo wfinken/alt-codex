@@ -1,6 +1,13 @@
-// Package codexlogin drives the real Codex CLI's own `codex login
-// --device-auth` flow so alt-codex can onboard ChatGPT-OAuth accounts (no
-// API key) without the user manually copying auth.json by hand.
+// Package codexlogin drives the real Codex CLI's own `codex login` flow so
+// alt-codex can onboard ChatGPT-OAuth accounts (no API key) without the
+// user manually copying auth.json by hand.
+//
+// It intentionally uses the standard browser-redirect flow rather than
+// `--device-auth`: alt-codex always runs locally with a real browser
+// available, and many enterprise identity providers specifically disable
+// the OAuth device-code grant (it's a known phishing vector) while still
+// allowing normal browser-redirect OAuth — so device-auth is more likely
+// to be blocked by a work account's org policy for no benefit here.
 //
 // The login runs under a throwaway CODEX_HOME so it can never disturb
 // whichever profile is currently active for the user's normal `codex`
@@ -31,8 +38,8 @@ type Session struct {
 	cancel   context.CancelFunc
 }
 
-// Start launches `codex login --device-auth` in the background and returns
-// immediately; poll Snapshot to observe progress and completion.
+// Start launches `codex login` in the background and returns immediately;
+// poll Snapshot to observe progress and completion.
 func Start() *Session {
 	s := &Session{}
 
@@ -74,7 +81,7 @@ func (s *Session) run(ctx context.Context) {
 	}
 	defer os.RemoveAll(tempHome)
 
-	cmd := exec.CommandContext(ctx, "codex", "login", "--device-auth")
+	cmd := exec.CommandContext(ctx, "codex", "login")
 	cmd.Env = append(os.Environ(), "CODEX_HOME="+tempHome)
 	out := &lineWriter{s: s}
 	cmd.Stdout = out
@@ -118,8 +125,8 @@ func (s *Session) finish(authJSON string, err error) {
 }
 
 // lineWriter splits a subprocess's combined stdout/stderr into lines as
-// they arrive, so the UI can show login progress (the device-auth URL and
-// code) as it's printed rather than only once the process exits.
+// they arrive, so the UI can show login progress as it's printed rather
+// than only once the process exits.
 type lineWriter struct {
 	s   *Session
 	buf []byte
