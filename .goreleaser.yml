@@ -1,0 +1,68 @@
+version: 2
+
+project_name: alt-codex
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: alt-codex
+    main: ./cmd/alt-codex
+    binary: alt-codex
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X github.com/wfinken/alt-codex/internal/version.Version={{.Version}}
+
+archives:
+  - id: default
+    formats: [tar.gz]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - "^chore:"
+
+brews:
+  - name: alt-codex
+    repository:
+      owner: wfinken
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: "https://github.com/wfinken/alt-codex"
+    description: "Switch Codex accounts at the speed of thought."
+    license: "MIT"
+    commit_author:
+      name: William Finken
+      email: wfinken@gmail.com
+    test: |
+      system "#{bin}/alt-codex", "--version"
+    install: |
+      bin.install "alt-codex"
+
+release:
+  github:
+    owner: wfinken
+    name: alt-codex
