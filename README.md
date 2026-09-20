@@ -29,7 +29,7 @@ CLI and gives every account a name, a badge, and a single keystroke.
     side-quest-startup        ⟳ Needs re-auth
     old-consulting-gig        ✕ Expired
 
-  options: OS keychain + encrypted-file fallback · auto-refresh off · renew mode ask
+  options: OS keychain + encrypted-file fallback · auto-refresh off · renew mode ask · shell prompt on
   ↑/k ↓/j navigate   enter/s switch   a add   d delete   ? settings & shortcuts   q quit
 ```
 
@@ -117,6 +117,7 @@ alt-codex
 | `r`           | Toggle auto-refresh              |
 | `l`           | Sign in / re-authenticate the selected profile |
 | `m`           | Cycle renew mode (ask/auto/manual) |
+| `p`           | Toggle shell prompt integration (on by default) |
 | `?`           | Open settings & shortcuts        |
 | `q`           | Quit                              |
 | `esc`         | Back / cancel                    |
@@ -124,8 +125,13 @@ alt-codex
 The dashboard itself only shows the essentials — active profile, the list,
 and a muted `options:` summary line. Press `?` any time for the full
 shortcut legend plus each setting's current value (auto-refresh, renew mode,
-secrets backend) in one place; the single-key toggles above still work
-directly from the dashboard without opening it.
+shell prompt integration, secrets backend) in one place; the single-key
+toggles above still work directly from the dashboard without opening it.
+
+`p` is persisted to `profiles.json`, not just the current session, since
+[`alt-codex current`](#shell-prompt-integration) runs as its own process from
+your shell — turning the integration off here makes it stop reporting a
+profile (same as having none active) until you turn it back on.
 
 When adding a profile, `tab`/`shift+tab` move between fields, `ctrl+t`
 toggles between a bare API key and a full pasted `auth.json` payload, and
@@ -161,8 +167,9 @@ Codex picks it up immediately.
 
 `alt-codex current` prints just the active profile's name — no TUI, no
 keychain access, cheap enough to shell out to on every prompt render. It
-exits non-zero with no output when no profile is active, so the hooks below
-hide the segment entirely instead of showing a blank one.
+exits non-zero with no output when no profile is active, or when the
+integration is turned off (`p` in the dashboard), so the hooks below hide
+the segment entirely instead of showing a blank one.
 
 ```sh
 $ alt-codex current

@@ -35,8 +35,9 @@ type Model struct {
 	active string
 	cursor int
 
-	autoRefresh bool
-	renewMode   renewMode
+	autoRefresh       bool
+	renewMode         renewMode
+	promptIntegration bool
 
 	form    addForm
 	confirm confirmDialog
@@ -75,6 +76,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.items, m.active = msg.items, msg.active
+		m.promptIntegration = msg.promptIntegration
 		if m.cursor >= len(m.items) {
 			if len(m.items) == 0 {
 				m.cursor = 0
@@ -123,6 +125,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case renewCheckMsg:
 		return m.handleRenewCheck(msg)
+
+	case promptIntegrationSetMsg:
+		if msg.err != nil {
+			m.promptIntegration = !msg.enabled // revert the optimistic flip below
+			m.status, m.statusErr = fmt.Sprintf("couldn't save shell prompt setting: %v", msg.err), true
+			return m, clearStatusAfter(5 * time.Second)
+		}
+		return m, nil
 
 	case reauthSavedMsg:
 		m.view = viewDashboard
@@ -255,6 +265,16 @@ func (m Model) updateDashboard(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.status, m.statusErr = "renew mode: "+m.renewMode.String(), false
 		return m, clearStatusAfter(2 * time.Second)
 
+	case key.Matches(km, dashKeys.PromptIntegration):
+		next := !m.promptIntegration
+		m.promptIntegration = next // optimistic; reverted if the save below fails
+		label := "shell prompt integration: off"
+		if next {
+			label = "shell prompt integration: on"
+		}
+		m.status, m.statusErr = label, false
+		return m, tea.Batch(setPromptIntegrationCmd(m.profiles, next), clearStatusAfter(2*time.Second))
+
 	case key.Matches(km, dashKeys.Help):
 		m.view = viewHelp
 	}
@@ -325,6 +345,15 @@ func (m Model) updateConfirm(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, deleteCmd(m.profiles, m.secrets, res.target, wasActive)
 }
 
+func (m Model) settings() dashboardSettings {
+	return dashboardSettings{
+		backend:           m.secrets.Backend(),
+		autoRefresh:       m.autoRefresh,
+		renewMode:         m.renewMode,
+		promptIntegration: m.promptIntegration,
+	}
+}
+
 func (m Model) View() string {
 	if !m.ready {
 		return appPadding.Render("loading alt-codex…")
@@ -335,13 +364,13 @@ func (m Model) View() string {
 	case viewAdd:
 		body = m.form.View()
 	case viewConfirmDelete:
-		body = renderDashboard(m.items, m.active, m.cursor, m.secrets.Backend(), m.autoRefresh, m.renewMode, m.width) + "\n" + m.confirm.View()
+		body = renderDashboard(m.items, m.active, m.cursor, m.settings()) + "\n" + m.confirm.View()
 	case viewReauth:
 		body = m.reauth.View()
 	case viewHelp:
-		body = renderDashboard(m.items, m.active, m.cursor, m.secrets.Backend(), m.autoRefresh, m.renewMode, m.width) + "\n" + renderHelp(m.secrets.Backend(), m.autoRefresh, m.renewMode)
+		body = renderDashboard(m.items, m.active, m.cursor, m.settings()) + "\n" + renderHelp(m.settings())
 	default:
-		body = renderDashboard(m.items, m.active, m.cursor, m.secrets.Backend(), m.autoRefresh, m.renewMode, m.width)
+		body = renderDashboard(m.items, m.active, m.cursor, m.settings())
 	}
 
 	if m.status != "" && m.view != viewAdd && m.view != viewReauth {

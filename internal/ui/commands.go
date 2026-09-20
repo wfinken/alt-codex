@@ -12,9 +12,10 @@ import (
 )
 
 type profilesLoadedMsg struct {
-	items  []profile.Profile
-	active string
-	err    error
+	items             []profile.Profile
+	active            string
+	promptIntegration bool
+	err               error
 }
 
 type switchedMsg struct {
@@ -36,7 +37,30 @@ type deletedMsg struct {
 func loadProfilesCmd(store *profile.Store) tea.Cmd {
 	return func() tea.Msg {
 		items, active, err := store.List()
-		return profilesLoadedMsg{items: items, active: active, err: err}
+		if err != nil {
+			return profilesLoadedMsg{err: err}
+		}
+		promptIntegration, err := store.PromptIntegrationEnabled()
+		if err != nil {
+			return profilesLoadedMsg{err: err}
+		}
+		return profilesLoadedMsg{items: items, active: active, promptIntegration: promptIntegration}
+	}
+}
+
+// promptIntegrationSetMsg reports the outcome of persisting the p key's
+// toggle (see updateDashboard) to profiles.json — it has to reach disk, not
+// just this Model, since `alt-codex current` reads it from a separate
+// process invocation.
+type promptIntegrationSetMsg struct {
+	enabled bool
+	err     error
+}
+
+func setPromptIntegrationCmd(store *profile.Store, enabled bool) tea.Cmd {
+	return func() tea.Msg {
+		err := store.SetPromptIntegrationEnabled(enabled)
+		return promptIntegrationSetMsg{enabled: enabled, err: err}
 	}
 }
 

@@ -20,7 +20,18 @@ func badgeFor(status profile.Status) string {
 	}
 }
 
-func renderDashboard(items []profile.Profile, active string, cursor int, backend string, autoRefresh bool, renew renewMode, width int) string {
+// dashboardSettings bundles the dashboard's toggleable state — shown as the
+// de-emphasized options line and, in full, in the ? overlay (help.go) — so
+// renderDashboard and renderHelp don't grow another positional bool for
+// every setting added to the roadmap.
+type dashboardSettings struct {
+	backend           string
+	autoRefresh       bool
+	renewMode         renewMode
+	promptIntegration bool
+}
+
+func renderDashboard(items []profile.Profile, active string, cursor int, s dashboardSettings) string {
 	var b strings.Builder
 
 	header := "⌁ alt-codex"
@@ -57,7 +68,7 @@ func renderDashboard(items []profile.Profile, active string, cursor int, backend
 	}
 
 	b.WriteString("\n")
-	b.WriteString(formHintStyle.Render(optionsSummary(backend, autoRefresh, renew)))
+	b.WriteString(formHintStyle.Render(optionsSummary(s)))
 	b.WriteString("\n")
 	footer := strings.Join([]string{
 		keyHint("↑/k ↓/j", "navigate"),
@@ -76,10 +87,14 @@ func renderDashboard(items []profile.Profile, active string, cursor int, backend
 // enough to see current state at a glance, with the full explanation and key
 // legend pushed into the ? overlay (see help.go) to keep the main view
 // uncluttered.
-func optionsSummary(backend string, autoRefresh bool, renew renewMode) string {
-	autoRefreshState := "off"
-	if autoRefresh {
-		autoRefreshState = "on"
+func optionsSummary(s dashboardSettings) string {
+	return fmt.Sprintf("options: %s · auto-refresh %s · renew mode %s · shell prompt %s",
+		s.backend, onOff(s.autoRefresh), s.renewMode, onOff(s.promptIntegration))
+}
+
+func onOff(b bool) string {
+	if b {
+		return "on"
 	}
-	return fmt.Sprintf("options: %s · auto-refresh %s · renew mode %s", backend, autoRefreshState, renew)
+	return "off"
 }

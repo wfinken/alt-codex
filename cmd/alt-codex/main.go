@@ -41,8 +41,9 @@ func main() {
 // render — see the README's shell prompt integration snippets. It only ever
 // reads profiles.json (never the secret store, which may hit an OS keychain
 // and isn't needed here) and prints nothing with a non-zero exit when no
-// profile is active, so prompt hooks can hide the segment entirely instead
-// of showing a blank one.
+// profile is active — or when the dashboard's p key has turned the
+// integration off — so prompt hooks hide the segment entirely instead of
+// showing a blank one.
 func runCurrent(args []string) int {
 	fs := flag.NewFlagSet("current", flag.ExitOnError)
 	showStatus := fs.Bool("status", false, "also print the active profile's health: ok, expired, or needs-reauth")
@@ -51,6 +52,12 @@ func runCurrent(args []string) int {
 	profiles, err := profile.NewStore()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "alt-codex:", err)
+		return 1
+	}
+	if enabled, err := profiles.PromptIntegrationEnabled(); err != nil {
+		fmt.Fprintln(os.Stderr, "alt-codex:", err)
+		return 1
+	} else if !enabled {
 		return 1
 	}
 	items, active, err := profiles.List()
