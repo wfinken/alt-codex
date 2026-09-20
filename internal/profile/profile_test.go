@@ -3,6 +3,7 @@ package profile
 import (
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func newTestStore(t *testing.T) *Store {
@@ -85,5 +86,42 @@ func TestStatusOf(t *testing.T) {
 	}
 	if got := p.StatusOf("other"); got != StatusSaved {
 		t.Errorf("StatusOf saved = %q, want %q", got, StatusSaved)
+	}
+}
+
+func TestStatusOfExpired(t *testing.T) {
+	past := time.Now().Add(-time.Hour)
+
+	apiKey := Profile{Name: "work", Type: TypeAPIKey, ExpiresAt: &past}
+	if got := apiKey.StatusOf(""); got != StatusExpired {
+		t.Errorf("api key StatusOf = %q, want %q", got, StatusExpired)
+	}
+
+	oauth := Profile{Name: "personal", Type: TypeRawJSON, ExpiresAt: &past}
+	if got := oauth.StatusOf(""); got != StatusNeedsReauth {
+		t.Errorf("oauth StatusOf = %q, want %q", got, StatusNeedsReauth)
+	}
+}
+
+func TestSetExpiresAt(t *testing.T) {
+	s := newTestStore(t)
+	if _, err := s.Add("work", TypeRawJSON, nil); err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	exp := time.Now().Add(24 * time.Hour)
+	if err := s.SetExpiresAt("work", &exp); err != nil {
+		t.Fatalf("SetExpiresAt: %v", err)
+	}
+	p, err := s.Get("work")
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if p.ExpiresAt == nil || !p.ExpiresAt.Equal(exp) {
+		t.Fatalf("ExpiresAt = %v, want %v", p.ExpiresAt, exp)
+	}
+
+	if err := s.SetExpiresAt("ghost", &exp); err == nil {
+		t.Fatal("expected error setting expiry on unknown profile")
 	}
 }

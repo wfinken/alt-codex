@@ -23,14 +23,14 @@ CLI and gives every account a name, a badge, and a single keystroke.
 
 ```
   ⌁ alt-codex    active: work-corp
-  secrets backed by: OS keychain
+  secrets backed by: OS keychain  ↻ auto-refresh off  renew mode: ask
 
   ▸ work-corp                 ● Active    last switched 2026-09-20 08:14
     personal-github           ○ Saved
-    side-quest-startup        ○ Saved
+    side-quest-startup        ⟳ Needs re-auth
     old-consulting-gig        ✕ Expired
 
-  ↑/k ↓/j navigate   enter/s switch   a add   d delete   r auto-refresh   q quit
+  ↑/k ↓/j navigate   enter/s switch   a add   d delete   r auto-refresh   l sign in   m renew mode   q quit
 ```
 
 ## Features
@@ -51,8 +51,19 @@ CLI and gives every account a name, a badge, and a single keystroke.
 - 🗑️ **Safe deletion** — deleting your *active* profile prompts an extra
   confirmation so you don't lock yourself out mid-task.
 - ↻ **Auto-refresh** — press `r` on the dashboard to have alt-codex reload
-  profiles every 30s on its own, so an `Expired` badge shows up the moment a
-  profile's `expires_at` passes instead of waiting for your next action.
+  profiles every 30s on its own, so a badge shows up the moment a profile
+  changes state instead of waiting for your next action.
+- 🔄 **Auto-renew ChatGPT tokens** — alt-codex silently renews a
+  ChatGPT-OAuth profile's access token via the real Codex CLI's own refresh
+  logic (no browser, no prompt) whenever it's within 24h of expiring —
+  checked on startup and on every auto-refresh tick. If a profile's
+  refresh_token itself has died and only a full re-login can fix it, what
+  happens next depends on the renew mode (cycle with `m`): **ask** (default)
+  shows a hint naming the profile so you press `l` to sign in; **auto**
+  pops the ChatGPT OAuth page in your browser immediately, no prompt;
+  **manual** just flags the `⟳ Needs re-auth` badge and waits for you to
+  press `l` whenever you're ready. `l` re-authenticates the selected
+  profile in place any time, in any mode.
 - 🖥️ **Cross-platform** — macOS, Linux, and Windows.
 
 ## Install
@@ -138,7 +149,7 @@ Codex picks it up immediately.
 
 ## Roadmap
 
-- [x] Auto-refresh tokens nearing expiration (toggle with `r` on the dashboard)
+- [x] Auto-refresh tokens nearing expiration (silent renewal + `l`/`m` re-auth controls; `r` toggles dashboard auto-refresh)
 - [ ] Shell prompt integration (show the active profile in your prompt)
 - [ ] Encrypted import/export for backing up profiles
 

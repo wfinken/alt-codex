@@ -44,9 +44,15 @@ type Profile struct {
 type Status string
 
 const (
-	StatusActive  Status = "Active"
+	StatusActive Status = "Active"
+	// StatusExpired covers non-OAuth (API key) profiles past their known
+	// expiry: alt-codex can't renew these itself, only flag them.
 	StatusExpired Status = "Expired"
-	StatusSaved   Status = "Saved"
+	// StatusNeedsReauth covers ChatGPT-OAuth profiles whose token is past
+	// its real expiry and whose refresh_token silent-renewal has failed
+	// (or hasn't been attempted yet) — see internal/codexrefresh.
+	StatusNeedsReauth Status = "NeedsReauth"
+	StatusSaved       Status = "Saved"
 )
 
 // StatusOf reports p's dashboard badge given the store's active profile name.
@@ -55,6 +61,9 @@ func (p Profile) StatusOf(activeName string) Status {
 	case p.Name == activeName:
 		return StatusActive
 	case p.ExpiresAt != nil && p.ExpiresAt.Before(time.Now()):
+		if p.Type == TypeRawJSON {
+			return StatusNeedsReauth
+		}
 		return StatusExpired
 	default:
 		return StatusSaved
@@ -175,6 +184,30 @@ func (s *Store) SetActive(name string) error {
 		return fmt.Errorf("no profile named %q", name)
 	}
 	doc.Active = name
+	return s.save(doc)
+}
+
+// SetExpiresAt updates name's cached expiry metadata. It exists mainly for
+// the codexrefresh flow: once a ChatGPT-OAuth profile is refreshed (silently
+// or interactively), the token's own exp claim is the authoritative expiry,
+// replacing whatever was known before.
+func (s *Store) SetExpiresAt(name string, exp *time.Time) error {
+	doc, err := s.load()
+	if err != nil {
+		return err
+	}
+	found := false
+	now := time.Now().UTC()
+	for i, p := range doc.Profiles {
+		if p.Name == name {
+			doc.Profiles[i].ExpiresAt = exp
+			doc.Profiles[i].UpdatedAt = now
+			found = true
+		}
+	}
+	if !found {
+		return fmt.Errorf("no profile named %q", name)
+	}
 	return s.save(doc)
 }
 
