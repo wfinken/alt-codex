@@ -43,7 +43,7 @@ func (c confirmDialog) Update(msg tea.Msg) (confirmDialog, *confirmResultMsg) {
 }
 
 func (c confirmDialog) View() string {
-	yes, no := "yes", "no"
+	var yes, no string
 	if c.yes {
 		yes = selectedRowStyle.Render("▸ yes")
 		no = "  no"
