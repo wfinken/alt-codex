@@ -107,3 +107,17 @@ func clearStatusAfter(d time.Duration) tea.Cmd {
 }
 
 type clearStatusMsg struct{}
+
+// autoRefreshInterval is how often the dashboard reloads profiles while
+// auto-refresh is enabled (roadmap: "auto-refresh tokens nearing
+// expiration"). Reloading periodically re-evaluates each profile's
+// ExpiresAt against the current time, so a profile's badge flips from
+// Saved to Expired on its own instead of only updating on the next
+// manual action.
+const autoRefreshInterval = 30 * time.Second
+
+type autoRefreshTickMsg struct{}
+
+func autoRefreshTick() tea.Cmd {
+	return tea.Tick(autoRefreshInterval, func(time.Time) tea.Msg { return autoRefreshTickMsg{} })
+}

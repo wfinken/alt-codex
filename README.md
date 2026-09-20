@@ -30,7 +30,7 @@ CLI and gives every account a name, a badge, and a single keystroke.
     side-quest-startup        ○ Saved
     old-consulting-gig        ✕ Expired
 
-  ↑/k ↓/j navigate   enter/s switch   a add   d delete   q quit
+  ↑/k ↓/j navigate   enter/s switch   a add   d delete   r auto-refresh   q quit
 ```
 
 ## Features
@@ -50,6 +50,9 @@ CLI and gives every account a name, a badge, and a single keystroke.
   accounts that only have a ChatGPT/Codex seat, not API access.
 - 🗑️ **Safe deletion** — deleting your *active* profile prompts an extra
   confirmation so you don't lock yourself out mid-task.
+- ↻ **Auto-refresh** — press `r` on the dashboard to have alt-codex reload
+  profiles every 30s on its own, so an `Expired` badge shows up the moment a
+  profile's `expires_at` passes instead of waiting for your next action.
 - 🖥️ **Cross-platform** — macOS, Linux, and Windows.
 
 ## Install
@@ -135,7 +138,7 @@ Codex picks it up immediately.
 
 ## Roadmap
 
-- [ ] Auto-refresh tokens nearing expiration
+- [x] Auto-refresh tokens nearing expiration (toggle with `r` on the dashboard)
 - [ ] Shell prompt integration (show the active profile in your prompt)
 - [ ] Encrypted import/export for backing up profiles
 

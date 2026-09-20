@@ -18,7 +18,7 @@ func badgeFor(status profile.Status) string {
 	}
 }
 
-func renderDashboard(items []profile.Profile, active string, cursor int, backend string, width int) string {
+func renderDashboard(items []profile.Profile, active string, cursor int, backend string, autoRefresh bool, width int) string {
 	var b strings.Builder
 
 	header := "⌁ alt-codex"
@@ -31,6 +31,8 @@ func renderDashboard(items []profile.Profile, active string, cursor int, backend
 	b.WriteString(activeLine)
 	b.WriteString("\n")
 	b.WriteString(subtitleStyle.Render(fmt.Sprintf("secrets backed by: %s", backend)))
+	b.WriteString("  ")
+	b.WriteString(autoRefreshIndicator(autoRefresh))
 	b.WriteString("\n\n")
 
 	if len(items) == 0 {
@@ -62,9 +64,19 @@ func renderDashboard(items []profile.Profile, active string, cursor int, backend
 		keyHint("enter/s", "switch"),
 		keyHint("a", "add"),
 		keyHint("d", "delete"),
+		keyHint("r", "auto-refresh"),
 		keyHint("q", "quit"),
 	}, "   ")
 	b.WriteString(footerStyle.Render(footer))
 
 	return appPadding.Render(b.String())
+}
+
+// autoRefreshIndicator renders the dashboard's current auto-refresh state
+// (roadmap: "auto-refresh tokens nearing expiration"), toggled via the r key.
+func autoRefreshIndicator(on bool) string {
+	if on {
+		return activeBadge.Render("↻ auto-refresh on")
+	}
+	return formHintStyle.Render("↻ auto-refresh off")
 }

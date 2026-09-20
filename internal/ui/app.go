@@ -33,6 +33,8 @@ type Model struct {
 	active string
 	cursor int
 
+	autoRefresh bool
+
 	form    addForm
 	confirm confirmDialog
 
@@ -108,6 +110,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case clearStatusMsg:
 		m.status = ""
 		return m, nil
+
+	case autoRefreshTickMsg:
+		if !m.autoRefresh {
+			return m, nil
+		}
+		return m, tea.Batch(loadProfilesCmd(m.profiles), autoRefreshTick())
 	}
 
 	switch m.view {
@@ -158,6 +166,15 @@ func (m Model) updateDashboard(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.confirm = newConfirmDialog(p.Name, msgText, p.Name == m.active)
 			m.view = viewConfirmDelete
 		}
+
+	case key.Matches(km, dashKeys.AutoRefresh):
+		m.autoRefresh = !m.autoRefresh
+		if m.autoRefresh {
+			m.status, m.statusErr = "auto-refresh on", false
+			return m, tea.Batch(loadProfilesCmd(m.profiles), autoRefreshTick(), clearStatusAfter(2*time.Second))
+		}
+		m.status, m.statusErr = "auto-refresh off", false
+		return m, clearStatusAfter(2 * time.Second)
 	}
 	return m, nil
 }
@@ -208,9 +225,9 @@ func (m Model) View() string {
 	case viewAdd:
 		body = m.form.View()
 	case viewConfirmDelete:
-		body = renderDashboard(m.items, m.active, m.cursor, m.secrets.Backend(), m.width) + "\n" + m.confirm.View()
+		body = renderDashboard(m.items, m.active, m.cursor, m.secrets.Backend(), m.autoRefresh, m.width) + "\n" + m.confirm.View()
 	default:
-		body = renderDashboard(m.items, m.active, m.cursor, m.secrets.Backend(), m.width)
+		body = renderDashboard(m.items, m.active, m.cursor, m.secrets.Backend(), m.autoRefresh, m.width)
 	}
 
 	if m.status != "" && m.view != viewAdd {
