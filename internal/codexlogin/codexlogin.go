@@ -67,10 +67,10 @@ func (s *Session) Cancel() {
 // Snapshot returns the output captured so far, whether the session has
 // finished, and — once finished — either an error or the captured
 // auth.json contents.
-func (s *Session) Snapshot() (lines []string, done bool, err error, authJSON string) {
+func (s *Session) Snapshot() (lines []string, done bool, authJSON string, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return append([]string(nil), s.lines...), s.done, s.err, s.authJSON
+	return append([]string(nil), s.lines...), s.done, s.authJSON, s.err
 }
 
 func (s *Session) run(ctx context.Context) {
@@ -79,7 +79,7 @@ func (s *Session) run(ctx context.Context) {
 		s.finish("", err)
 		return
 	}
-	defer os.RemoveAll(tempHome)
+	defer func() { _ = os.RemoveAll(tempHome) }()
 
 	cmd := exec.CommandContext(ctx, "codex", "login")
 	cmd.Env = append(os.Environ(), "CODEX_HOME="+tempHome)
