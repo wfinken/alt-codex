@@ -22,6 +22,21 @@ builds:
     ldflags:
       - -s -w -X github.com/wfinken/alt-codex/internal/version.Version={{.Version}}
 
+nfpms:
+  - id: alt-codex-deb
+    package_name: alt-codex
+    ids:
+      - alt-codex
+    formats:
+      - deb
+    vendor: William Finken
+    homepage: "https://github.com/wfinken/alt-codex"
+    maintainer: "William Finken <wfinken@gmail.com>"
+    description: "Switch Codex accounts at the speed of thought."
+    license: "MIT"
+    section: utils
+    bindir: /usr/bin
+
 archives:
   - id: default
     formats: [tar.gz]
