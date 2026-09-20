@@ -8,7 +8,6 @@ whatever — without ever hand-editing a config file or copy-pasting a token
 again.
 
 [![CI](https://github.com/wfinken/alt-codex/actions/workflows/ci.yml/badge.svg)](https://github.com/wfinken/alt-codex/actions/workflows/ci.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/wfinken/alt-codex)](https://goreportcard.com/report/github.com/wfinken/alt-codex)
 [![Go Reference](https://pkg.go.dev/badge/github.com/wfinken/alt-codex.svg)](https://pkg.go.dev/github.com/wfinken/alt-codex)
 [![Go version](https://img.shields.io/github/go-mod/go-version/wfinken/alt-codex)](go.mod)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
