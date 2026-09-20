@@ -19,6 +19,7 @@ const (
 	viewDashboard view = iota
 	viewAdd
 	viewConfirmDelete
+	viewReauth
 )
 
 // Model is the root Bubbletea model for alt-codex.
@@ -33,8 +34,12 @@ type Model struct {
 	active string
 	cursor int
 
+	autoRefresh bool
+	renewMode   renewMode
+
 	form    addForm
 	confirm confirmDialog
+	reauth  reauthDialog
 
 	status    string
 	statusErr bool
@@ -48,7 +53,7 @@ func New(profiles *profile.Store, secrets secret.Store) Model {
 }
 
 func (m Model) Init() tea.Cmd {
-	return loadProfilesCmd(m.profiles)
+	return tea.Batch(loadProfilesCmd(m.profiles), renewCheckCmd(m.profiles, m.secrets))
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -108,6 +113,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case clearStatusMsg:
 		m.status = ""
 		return m, nil
+
+	case autoRefreshTickMsg:
+		if !m.autoRefresh {
+			return m, nil
+		}
+		return m, tea.Batch(loadProfilesCmd(m.profiles), autoRefreshTick(), renewCheckCmd(m.profiles, m.secrets))
+
+	case renewCheckMsg:
+		return m.handleRenewCheck(msg)
+
+	case reauthSavedMsg:
+		m.view = viewDashboard
+		if msg.err != nil {
+			m.status, m.statusErr = fmt.Sprintf("re-auth save failed: %v", msg.err), true
+			return m, tea.Batch(loadProfilesCmd(m.profiles), clearStatusAfter(5*time.Second))
+		}
+		m.status, m.statusErr = "renewed "+msg.name, false
+		return m, tea.Batch(loadProfilesCmd(m.profiles), clearStatusAfter(4*time.Second))
 	}
 
 	switch m.view {
@@ -115,9 +138,53 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.updateAdd(msg)
 	case viewConfirmDelete:
 		return m.updateConfirm(msg)
+	case viewReauth:
+		return m.updateReauth(msg)
 	default:
 		return m.updateDashboard(msg)
 	}
+}
+
+// handleRenewCheck applies a renewCheckCmd sweep's results according to the
+// current renewMode (roadmap: "auto-refresh tokens nearing expiration").
+// Profiles that were silently renewed need no user action; profiles whose
+// refresh_token is dead are handled per renewMode: renewAuto jumps straight
+// into an interactive re-login, renewAsk surfaces a hint naming the profile
+// (press l on it), and renewManual just leaves the dashboard's badge to
+// speak for itself.
+func (m Model) handleRenewCheck(msg renewCheckMsg) (tea.Model, tea.Cmd) {
+	if len(msg.results) == 0 {
+		return m, nil
+	}
+
+	refreshedCount := 0
+	var needsAuth []string
+	for _, r := range msg.results {
+		if r.refreshed {
+			refreshedCount++
+		}
+		if r.needsAuth {
+			needsAuth = append(needsAuth, r.profile)
+		}
+	}
+
+	cmds := []tea.Cmd{loadProfilesCmd(m.profiles)}
+	switch {
+	case len(needsAuth) > 0 && m.renewMode == renewAuto && m.view != viewReauth:
+		target := needsAuth[0]
+		m.view = viewReauth
+		m.reauth = newReauthDialog(target)
+		cmds = append(cmds, m.reauth.spinner.Tick, pollLoginCmd())
+
+	case len(needsAuth) > 0 && m.renewMode == renewAsk:
+		m.status, m.statusErr = needsAuth[0]+" needs re-auth — select it and press l to sign in", true
+		cmds = append(cmds, clearStatusAfter(8*time.Second))
+
+	case refreshedCount > 0:
+		m.status, m.statusErr = fmt.Sprintf("silently renewed %d profile(s)", refreshedCount), false
+		cmds = append(cmds, clearStatusAfter(4*time.Second))
+	}
+	return m, tea.Batch(cmds...)
 }
 
 func (m Model) updateDashboard(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -158,6 +225,32 @@ func (m Model) updateDashboard(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.confirm = newConfirmDialog(p.Name, msgText, p.Name == m.active)
 			m.view = viewConfirmDelete
 		}
+
+	case key.Matches(km, dashKeys.AutoRefresh):
+		m.autoRefresh = !m.autoRefresh
+		if m.autoRefresh {
+			m.status, m.statusErr = "auto-refresh on", false
+			return m, tea.Batch(loadProfilesCmd(m.profiles), autoRefreshTick(), clearStatusAfter(2*time.Second))
+		}
+		m.status, m.statusErr = "auto-refresh off", false
+		return m, clearStatusAfter(2 * time.Second)
+
+	case key.Matches(km, dashKeys.Reauth):
+		if len(m.items) > 0 {
+			p := m.items[m.cursor]
+			if p.Type != profile.TypeRawJSON {
+				m.status, m.statusErr = "only ChatGPT sign-in profiles can be re-authenticated this way", true
+				return m, clearStatusAfter(4 * time.Second)
+			}
+			m.view = viewReauth
+			m.reauth = newReauthDialog(p.Name)
+			return m, tea.Batch(m.reauth.spinner.Tick, pollLoginCmd())
+		}
+
+	case key.Matches(km, dashKeys.RenewMode):
+		m.renewMode = m.renewMode.next()
+		m.status, m.statusErr = "renew mode: "+m.renewMode.String(), false
+		return m, clearStatusAfter(2 * time.Second)
 	}
 	return m, nil
 }
@@ -179,6 +272,22 @@ func (m Model) updateAdd(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.form, cmd, sub = m.form.Update(msg)
 	if sub != nil {
 		return m, tea.Batch(cmd, addCmd(m.profiles, m.secrets, sub.name, sub.credType, sub.token, sub.expires))
+	}
+	return m, cmd
+}
+
+func (m Model) updateReauth(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if km, ok := msg.(tea.KeyMsg); ok && km.String() == "esc" {
+		m.reauth.cancel()
+		m.view = viewDashboard
+		return m, nil
+	}
+
+	var cmd tea.Cmd
+	var sub *reauthDoneMsg
+	m.reauth, cmd, sub = m.reauth.Update(msg)
+	if sub != nil {
+		return m, tea.Batch(cmd, saveReauthCmd(m.profiles, m.secrets, sub.profile, sub.authJSON))
 	}
 	return m, cmd
 }
@@ -208,12 +317,14 @@ func (m Model) View() string {
 	case viewAdd:
 		body = m.form.View()
 	case viewConfirmDelete:
-		body = renderDashboard(m.items, m.active, m.cursor, m.secrets.Backend(), m.width) + "\n" + m.confirm.View()
+		body = renderDashboard(m.items, m.active, m.cursor, m.secrets.Backend(), m.autoRefresh, m.renewMode, m.width) + "\n" + m.confirm.View()
+	case viewReauth:
+		body = m.reauth.View()
 	default:
-		body = renderDashboard(m.items, m.active, m.cursor, m.secrets.Backend(), m.width)
+		body = renderDashboard(m.items, m.active, m.cursor, m.secrets.Backend(), m.autoRefresh, m.renewMode, m.width)
 	}
 
-	if m.status != "" && m.view != viewAdd {
+	if m.status != "" && m.view != viewAdd && m.view != viewReauth {
 		style := statusOKStyle
 		if m.statusErr {
 			style = statusErrStyle

@@ -3,12 +3,15 @@ package ui
 import "github.com/charmbracelet/bubbles/key"
 
 type dashboardKeyMap struct {
-	Up     key.Binding
-	Down   key.Binding
-	Switch key.Binding
-	Add    key.Binding
-	Delete key.Binding
-	Quit   key.Binding
+	Up          key.Binding
+	Down        key.Binding
+	Switch      key.Binding
+	Add         key.Binding
+	Delete      key.Binding
+	AutoRefresh key.Binding
+	Reauth      key.Binding
+	RenewMode   key.Binding
+	Quit        key.Binding
 }
 
 var dashKeys = dashboardKeyMap{
@@ -31,6 +34,18 @@ var dashKeys = dashboardKeyMap{
 	Delete: key.NewBinding(
 		key.WithKeys("d"),
 		key.WithHelp("d", "delete"),
+	),
+	AutoRefresh: key.NewBinding(
+		key.WithKeys("r"),
+		key.WithHelp("r", "auto-refresh"),
+	),
+	Reauth: key.NewBinding(
+		key.WithKeys("l"),
+		key.WithHelp("l", "sign in"),
+	),
+	RenewMode: key.NewBinding(
+		key.WithKeys("m"),
+		key.WithHelp("m", "renew mode"),
 	),
 	Quit: key.NewBinding(
 		key.WithKeys("q", "ctrl+c"),
