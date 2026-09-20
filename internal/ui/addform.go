@@ -111,7 +111,7 @@ func (f addForm) Update(msg tea.Msg) (addForm, tea.Cmd, *submitAddMsg) {
 			f.spinner, cmd = f.spinner.Update(m)
 			return f, cmd, nil
 		case loginTickMsg:
-			lines, done, err, authJSON := f.loginSess.Snapshot()
+			lines, done, authJSON, err := f.loginSess.Snapshot()
 			f.loginLines = lines
 			if !done {
 				return f, pollLoginCmd(), nil
