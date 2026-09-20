@@ -14,11 +14,13 @@ type Store interface {
 	Delete(profileName string) error
 }
 
-// New picks the OS keychain when it is usable on this machine, falling back
-// to an encrypted file store otherwise.
+// New returns a Store that prefers the OS keychain, falling back to an
+// encrypted local file — either because no keychain is reachable at all, or
+// because a specific secret doesn't fit in one (FR-02, NFR-03).
 func New() (Store, error) {
-	if ks, err := newKeyringStore(); err == nil {
-		return ks, nil
+	fallback, err := newEncryptedStore()
+	if err != nil {
+		return nil, err
 	}
-	return newEncryptedStore()
+	return &hybridStore{primary: keyringStore{}, fallback: fallback}, nil
 }

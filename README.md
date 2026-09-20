@@ -40,8 +40,9 @@ CLI and gives every account a name, a badge, and a single keystroke.
 - ⚡ **Instant switching** — select a profile, hit `enter`, done. No shell restarts.
 - 🔐 **Secure by default** — credentials live in your OS keychain (macOS
   Keychain, Linux Secret Service, Windows Credential Manager), never in
-  plaintext, with an AES-256-GCM encrypted local fallback if no keychain is
-  available.
+  plaintext. Falls back to an AES-256-GCM encrypted local file automatically
+  whenever no keychain is available *or* a secret is too large for one (OS
+  keychains cap item size, and a full ChatGPT OAuth credential can exceed it).
 - 🧭 **Full keyboard control** — arrow keys or vim motions (`j`/`k`), your call.
 - ➕ **Guided onboarding** — an in-TUI form validates a new token before it's
   ever saved.
