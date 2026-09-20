@@ -10,7 +10,7 @@ cd alt-codex
 make run
 ```
 
-Requires Go 1.23+.
+Requires Go 1.24.2+ (see `go.mod`).
 
 ## Before opening a PR
 

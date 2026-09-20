@@ -67,7 +67,7 @@ make build
 ./alt-codex
 ```
 
-Requires Go 1.23+ to build. No runtime dependencies once compiled.
+Requires Go 1.24.2+ to build. No runtime dependencies once compiled.
 
 ## Usage
 
