@@ -20,6 +20,7 @@ const (
 	viewAdd
 	viewConfirmDelete
 	viewReauth
+	viewHelp
 )
 
 // Model is the root Bubbletea model for alt-codex.
@@ -140,6 +141,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.updateConfirm(msg)
 	case viewReauth:
 		return m.updateReauth(msg)
+	case viewHelp:
+		return m.updateHelp(msg)
 	default:
 		return m.updateDashboard(msg)
 	}
@@ -251,6 +254,21 @@ func (m Model) updateDashboard(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.renewMode = m.renewMode.next()
 		m.status, m.statusErr = "renew mode: "+m.renewMode.String(), false
 		return m, clearStatusAfter(2 * time.Second)
+
+	case key.Matches(km, dashKeys.Help):
+		m.view = viewHelp
+	}
+	return m, nil
+}
+
+// updateHelp handles the settings & shortcuts overlay (? key): it's purely
+// informational, so any of esc/?/q just dismisses it back to the dashboard.
+func (m Model) updateHelp(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if km, ok := msg.(tea.KeyMsg); ok {
+		switch km.String() {
+		case "esc", "?", "q":
+			m.view = viewDashboard
+		}
 	}
 	return m, nil
 }
@@ -320,6 +338,8 @@ func (m Model) View() string {
 		body = renderDashboard(m.items, m.active, m.cursor, m.secrets.Backend(), m.autoRefresh, m.renewMode, m.width) + "\n" + m.confirm.View()
 	case viewReauth:
 		body = m.reauth.View()
+	case viewHelp:
+		body = renderDashboard(m.items, m.active, m.cursor, m.secrets.Backend(), m.autoRefresh, m.renewMode, m.width) + "\n" + renderHelp(m.secrets.Backend(), m.autoRefresh, m.renewMode)
 	default:
 		body = renderDashboard(m.items, m.active, m.cursor, m.secrets.Backend(), m.autoRefresh, m.renewMode, m.width)
 	}

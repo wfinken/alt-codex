@@ -23,14 +23,14 @@ CLI and gives every account a name, a badge, and a single keystroke.
 
 ```
   ⌁ alt-codex    active: work-corp
-  secrets backed by: OS keychain  ↻ auto-refresh off  renew mode: ask
 
   ▸ work-corp                 ● Active    last switched 2026-09-20 08:14
     personal-github           ○ Saved
     side-quest-startup        ⟳ Needs re-auth
     old-consulting-gig        ✕ Expired
 
-  ↑/k ↓/j navigate   enter/s switch   a add   d delete   r auto-refresh   l sign in   m renew mode   q quit
+  options: OS keychain + encrypted-file fallback · auto-refresh off · renew mode ask
+  ↑/k ↓/j navigate   enter/s switch   a add   d delete   ? settings & shortcuts   q quit
 ```
 
 ## Features
@@ -114,8 +114,18 @@ alt-codex
 | `enter` / `s` | Switch to the selected profile   |
 | `a`           | Add a new account                |
 | `d`           | Delete the selected profile      |
+| `r`           | Toggle auto-refresh              |
+| `l`           | Sign in / re-authenticate the selected profile |
+| `m`           | Cycle renew mode (ask/auto/manual) |
+| `?`           | Open settings & shortcuts        |
 | `q`           | Quit                              |
 | `esc`         | Back / cancel                    |
+
+The dashboard itself only shows the essentials — active profile, the list,
+and a muted `options:` summary line. Press `?` any time for the full
+shortcut legend plus each setting's current value (auto-refresh, renew mode,
+secrets backend) in one place; the single-key toggles above still work
+directly from the dashboard without opening it.
 
 When adding a profile, `tab`/`shift+tab` move between fields, `ctrl+t`
 toggles between a bare API key and a full pasted `auth.json` payload, and
@@ -147,10 +157,84 @@ that file — they're stored via your OS keychain, or in an encrypted
 the selected credential straight into the Codex CLI's own auth file, so
 Codex picks it up immediately.
 
+## Shell prompt integration
+
+`alt-codex current` prints just the active profile's name — no TUI, no
+keychain access, cheap enough to shell out to on every prompt render. It
+exits non-zero with no output when no profile is active, so the hooks below
+hide the segment entirely instead of showing a blank one.
+
+```sh
+$ alt-codex current
+work-corp
+```
+
+Add `--status` to also get a health word (`ok`, `expired`, or
+`needs-reauth`) for coloring the segment when a token needs attention:
+
+```sh
+$ alt-codex current --status
+work-corp ok
+```
+
+**Bash** (`~/.bashrc`):
+```sh
+alt_codex_ps1() {
+  local p; p=$(alt-codex current 2>/dev/null) || return
+  printf '⌁ %s ' "$p"
+}
+PS1='$(alt_codex_ps1)'"$PS1"
+```
+
+**Zsh** (`~/.zshrc`):
+```sh
+alt_codex_prompt() {
+  local p; p=$(alt-codex current 2>/dev/null) || return
+  echo "⌁ %F{magenta}${p}%f "
+}
+setopt PROMPT_SUBST
+PROMPT='$(alt_codex_prompt)'"$PROMPT"
+```
+
+**Fish** (`~/.config/fish/functions/fish_prompt.fish`):
+```fish
+function fish_prompt
+    set -l p (alt-codex current 2>/dev/null)
+    if test -n "$p"
+        set_color magenta
+        echo -n "⌁$p "
+        set_color normal
+    end
+    # ...rest of your prompt
+end
+```
+
+**Starship** (`~/.config/starship.toml`):
+```toml
+[custom.alt_codex]
+command = "alt-codex current"
+when = "alt-codex current >/dev/null 2>&1"
+format = "[⌁ $output]($style) "
+style = "bold purple"
+```
+
+To flip the segment red when a profile needs re-auth, swap in the
+`--status` form and branch on the second word — e.g. in the bash/zsh
+functions above:
+
+```sh
+alt_codex_prompt() {
+  local out p health; out=$(alt-codex current --status 2>/dev/null) || return
+  p=${out%% *}; health=${out#* }
+  local color=magenta; [ "$health" != ok ] && color=red
+  echo "⌁ %F{$color}${p}%f "
+}
+```
+
 ## Roadmap
 
 - [x] Auto-refresh tokens nearing expiration (silent renewal + `l`/`m` re-auth controls; `r` toggles dashboard auto-refresh)
-- [ ] Shell prompt integration (show the active profile in your prompt)
+- [x] Shell prompt integration (`alt-codex current` + bash/zsh/fish/starship snippets above)
 - [ ] Encrypted import/export for backing up profiles
 
 ## Contributing

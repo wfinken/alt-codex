@@ -11,6 +11,7 @@ type dashboardKeyMap struct {
 	AutoRefresh key.Binding
 	Reauth      key.Binding
 	RenewMode   key.Binding
+	Help        key.Binding
 	Quit        key.Binding
 }
 
@@ -46,6 +47,10 @@ var dashKeys = dashboardKeyMap{
 	RenewMode: key.NewBinding(
 		key.WithKeys("m"),
 		key.WithHelp("m", "renew mode"),
+	),
+	Help: key.NewBinding(
+		key.WithKeys("?"),
+		key.WithHelp("?", "settings & shortcuts"),
 	),
 	Quit: key.NewBinding(
 		key.WithKeys("q", "ctrl+c"),

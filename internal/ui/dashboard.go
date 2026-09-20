@@ -31,12 +31,6 @@ func renderDashboard(items []profile.Profile, active string, cursor int, backend
 	b.WriteString(titleStyle.Render(header))
 	b.WriteString("  ")
 	b.WriteString(activeLine)
-	b.WriteString("\n")
-	b.WriteString(subtitleStyle.Render(fmt.Sprintf("secrets backed by: %s", backend)))
-	b.WriteString("  ")
-	b.WriteString(autoRefreshIndicator(autoRefresh))
-	b.WriteString("  ")
-	b.WriteString(subtitleStyle.Render(fmt.Sprintf("renew mode: %s", renew)))
 	b.WriteString("\n\n")
 
 	if len(items) == 0 {
@@ -63,14 +57,14 @@ func renderDashboard(items []profile.Profile, active string, cursor int, backend
 	}
 
 	b.WriteString("\n")
+	b.WriteString(formHintStyle.Render(optionsSummary(backend, autoRefresh, renew)))
+	b.WriteString("\n")
 	footer := strings.Join([]string{
 		keyHint("↑/k ↓/j", "navigate"),
 		keyHint("enter/s", "switch"),
 		keyHint("a", "add"),
 		keyHint("d", "delete"),
-		keyHint("r", "auto-refresh"),
-		keyHint("l", "sign in"),
-		keyHint("m", "renew mode"),
+		keyHint("?", "settings & shortcuts"),
 		keyHint("q", "quit"),
 	}, "   ")
 	b.WriteString(footerStyle.Render(footer))
@@ -78,11 +72,14 @@ func renderDashboard(items []profile.Profile, active string, cursor int, backend
 	return appPadding.Render(b.String())
 }
 
-// autoRefreshIndicator renders the dashboard's current auto-refresh state
-// (roadmap: "auto-refresh tokens nearing expiration"), toggled via the r key.
-func autoRefreshIndicator(on bool) string {
-	if on {
-		return activeBadge.Render("↻ auto-refresh on")
+// optionsSummary renders the dashboard's de-emphasized settings line: just
+// enough to see current state at a glance, with the full explanation and key
+// legend pushed into the ? overlay (see help.go) to keep the main view
+// uncluttered.
+func optionsSummary(backend string, autoRefresh bool, renew renewMode) string {
+	autoRefreshState := "off"
+	if autoRefresh {
+		autoRefreshState = "on"
 	}
-	return formHintStyle.Render("↻ auto-refresh off")
+	return fmt.Sprintf("options: %s · auto-refresh %s · renew mode %s", backend, autoRefreshState, renew)
 }
