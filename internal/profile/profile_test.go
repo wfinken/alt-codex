@@ -125,3 +125,33 @@ func TestSetExpiresAt(t *testing.T) {
 		t.Fatal("expected error setting expiry on unknown profile")
 	}
 }
+
+func TestPromptIntegrationEnabled(t *testing.T) {
+	s := newTestStore(t)
+
+	enabled, err := s.PromptIntegrationEnabled()
+	if err != nil {
+		t.Fatalf("PromptIntegrationEnabled: %v", err)
+	}
+	if !enabled {
+		t.Fatal("PromptIntegrationEnabled on a fresh store = false, want true (enabled by default)")
+	}
+
+	if err := s.SetPromptIntegrationEnabled(false); err != nil {
+		t.Fatalf("SetPromptIntegrationEnabled(false): %v", err)
+	}
+	if enabled, err = s.PromptIntegrationEnabled(); err != nil {
+		t.Fatalf("PromptIntegrationEnabled: %v", err)
+	} else if enabled {
+		t.Fatal("PromptIntegrationEnabled = true after disabling, want false")
+	}
+
+	if err := s.SetPromptIntegrationEnabled(true); err != nil {
+		t.Fatalf("SetPromptIntegrationEnabled(true): %v", err)
+	}
+	if enabled, err = s.PromptIntegrationEnabled(); err != nil {
+		t.Fatalf("PromptIntegrationEnabled: %v", err)
+	} else if !enabled {
+		t.Fatal("PromptIntegrationEnabled = false after re-enabling, want true")
+	}
+}

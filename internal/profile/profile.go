@@ -73,6 +73,11 @@ func (p Profile) StatusOf(activeName string) Status {
 type document struct {
 	Active   string    `json:"active"`
 	Profiles []Profile `json:"profiles"`
+	// PromptIntegrationDisabled opts out of `alt-codex current` (roadmap:
+	// "shell prompt integration"). Stored inverted, and omitted when false,
+	// so profiles.json files written before this setting existed are
+	// interpreted as enabled.
+	PromptIntegrationDisabled bool `json:"prompt_integration_disabled,omitempty"`
 }
 
 // Store persists profile metadata to profiles.json (FR-03).
@@ -208,6 +213,29 @@ func (s *Store) SetExpiresAt(name string, exp *time.Time) error {
 	if !found {
 		return fmt.Errorf("no profile named %q", name)
 	}
+	return s.save(doc)
+}
+
+// PromptIntegrationEnabled reports whether `alt-codex current` should print
+// the active profile's name for shell prompt hooks (roadmap: "shell prompt
+// integration"). Enabled by default; toggled from the dashboard's p key.
+func (s *Store) PromptIntegrationEnabled() (bool, error) {
+	doc, err := s.load()
+	if err != nil {
+		return false, err
+	}
+	return !doc.PromptIntegrationDisabled, nil
+}
+
+// SetPromptIntegrationEnabled persists the p-key toggle. It has to live on
+// disk, not just in the running TUI's model, since `alt-codex current` reads
+// it from a separate process invocation the TUI has no other way to reach.
+func (s *Store) SetPromptIntegrationEnabled(enabled bool) error {
+	doc, err := s.load()
+	if err != nil {
+		return err
+	}
+	doc.PromptIntegrationDisabled = !enabled
 	return s.save(doc)
 }
 

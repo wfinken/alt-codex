@@ -42,6 +42,14 @@ var (
 				BorderForeground(colorExpired).
 				Padding(1, 3)
 
+	// helpBorderStyle is dialogBorderStyle's non-destructive sibling, used
+	// for the settings & shortcuts overlay (? key) so an informational
+	// popup doesn't borrow the delete-confirmation's warning color.
+	helpBorderStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(colorAccent).
+			Padding(1, 3)
+
 	appPadding = lipgloss.NewStyle().Padding(1, 2)
 )
 
