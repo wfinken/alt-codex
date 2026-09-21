@@ -1,0 +1,30 @@
+Package: alt-codex
+Version: 0.1.1
+Architecture: arm64
+Maintainer: William Finken <wfinken@gmail.com>
+Installed-Size: 4480
+Filename: ./alt-codex_0.1.1_linux_arm64.deb
+Size: 1732872
+MD5sum: 0d526502464e70626cb3fbf672114970
+SHA1: ab08764ffe505d7cdc07a9bd5b10cb5fa80022cf
+SHA256: 05d669a610aba7a2f8797724da342e0127cf5e7a7869b542fbd0bd1d6d355690
+Section: utils
+Priority: optional
+Homepage: https://github.com/wfinken/alt-codex
+Description: Switch Codex accounts at the speed of thought.
+
+Package: alt-codex
+Version: 0.1.1
+Architecture: amd64
+Maintainer: William Finken <wfinken@gmail.com>
+Installed-Size: 4648
+Filename: ./alt-codex_0.1.1_linux_amd64.deb
+Size: 1883224
+MD5sum: 91f8b7b99e781d00d70afcdd119b5921
+SHA1: 528459fe0f8771ada7b55c29a7bfccde2cca3e93
+SHA256: da444a095b0b05028e8a9546673f0af5219773365d30628b13bdae9d841ddb76
+Section: utils
+Priority: optional
+Homepage: https://github.com/wfinken/alt-codex
+Description: Switch Codex accounts at the speed of thought.
+

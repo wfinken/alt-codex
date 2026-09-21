@@ -1,0 +1,32 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+Architectures: amd64 arm64
+Codename: stable
+Date: Mon, 21 Sep 2026 00:51:26 +0000
+Label: alt-codex
+Origin: alt-codex
+Suite: stable
+MD5Sum:
+ bf98877057e25e505cb88f477cdc5a2e              966 Packages
+ ea691f97cc1a8f111f0b28f626108bf7              496 Packages.gz
+ 20263a32f43a1633a7c431b03d016a07              131 Release
+SHA1:
+ 67eddb4276727a90269c582fd696bee802664421              966 Packages
+ 06b53734a77a2b346b4df7e8b50ec95465570197              496 Packages.gz
+ 7506a3c579810d661f67d1a7d76b650aa53917eb              131 Release
+SHA256:
+ 89c6f873109ceb89284f1c0fda0d55363d658f4a0ec127cc519d1e65f0bf4730              966 Packages
+ 1b45473b1aef4ecb28e8df922371cd03073b5aabbd8e639fa3bcef85a4b0a4d4              496 Packages.gz
+ 4574335b4da0a40c150b73dc21cccbb869cf6a8bf1df4a9adae67e6800254ed9              131 Release
+SHA512:
+ d209f254aed0595a7e047f92b107c89a13229b48e2039f73f392e6aadbcd657ca60e6215923277682ebc29be91efbe97d51b7777ff7a41de22e255690a212dac              966 Packages
+ 06e8a339b0243938ca6ce4f579250653ffcc741f5139f651ea787c1f1990ab691c8f410a23669968bd8abe6ec40bf291240f136b6f42834c0b9bc484b5dfdfe8              496 Packages.gz
+ 4364b9d6f876b35e99573d0e5d6c88d21994b178d7a66a07a410474fb5b9ad4b2b334e92dc9dcce4cefc15ffef5997258f60ab225c77f9f585e6c95bdff4581a              131 Release
+-----BEGIN PGP SIGNATURE-----
+
+iHUEARYKAB0WIQSAoPgcu8yXvwIif2t7QDCMSPpPIAUCarB/jgAKCRB7QDCMSPpP
+IMEGAQC9IAa47RBVwmB5divcU9RWpYEPpX1/Yv/BJoeHOiXuvgD9EHt5E9MLWm6+
+kMIccTrqyOI3hVr/ynGnxxA8a+HZ4AI=
+=InoG
+-----END PGP SIGNATURE-----
