@@ -79,17 +79,6 @@ brew tap wfinken/tap
 brew install alt-codex
 ```
 
-Tapping first (rather than relying on `brew install wfinken/tap/alt-codex` to
-auto-tap) registers `wfinken/tap` as a trusted source so plain `brew upgrade`
-and `brew update` commands pick it up later. Speaking of which: `brew
-upgrade` only checks formulae against your **local** copy of a tap, so if it
-reports you're already on the latest version, run `brew update` first to
-refresh the tap before upgrading again:
-
-```sh
-brew update && brew upgrade alt-codex
-```
-
 ### APT (Debian/Ubuntu)
 
 ```sh
