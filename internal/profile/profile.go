@@ -239,6 +239,53 @@ func (s *Store) SetPromptIntegrationEnabled(enabled bool) error {
 	return s.save(doc)
 }
 
+// ImportResult reports what Import did with each profile it was given.
+type ImportResult struct {
+	Imported []string
+	// Skipped lists profiles that already existed and were left untouched
+	// because overwrite was false.
+	Skipped []string
+}
+
+// Import adds profiles from a decrypted backup.Archive, preserving their
+// original timestamps rather than stamping new ones the way Add does — an
+// import is a restore, not a fresh account. A profile whose name already
+// exists is left alone unless overwrite is true, in which case its metadata
+// is replaced outright. The store's active pointer is never touched: which
+// profile Codex is currently pointed at shouldn't change just from restoring
+// a backup.
+func (s *Store) Import(profiles []Profile, overwrite bool) (ImportResult, error) {
+	doc, err := s.load()
+	if err != nil {
+		return ImportResult{}, err
+	}
+
+	index := make(map[string]int, len(doc.Profiles))
+	for i, p := range doc.Profiles {
+		index[p.Name] = i
+	}
+
+	var res ImportResult
+	for _, p := range profiles {
+		if i, exists := index[p.Name]; exists {
+			if !overwrite {
+				res.Skipped = append(res.Skipped, p.Name)
+				continue
+			}
+			doc.Profiles[i] = p
+		} else {
+			index[p.Name] = len(doc.Profiles)
+			doc.Profiles = append(doc.Profiles, p)
+		}
+		res.Imported = append(res.Imported, p.Name)
+	}
+
+	if len(res.Imported) == 0 {
+		return res, nil
+	}
+	return res, s.save(doc)
+}
+
 // Remove deletes the named profile's metadata. If it was the active profile,
 // the store's active pointer is cleared. Removing the associated secret from
 // the secret store is the caller's responsibility (FR-08).

@@ -126,6 +126,68 @@ func TestSetExpiresAt(t *testing.T) {
 	}
 }
 
+func TestImport(t *testing.T) {
+	s := newTestStore(t)
+	if _, err := s.Add("work", TypeAPIKey, nil); err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+	if err := s.SetActive("work"); err != nil {
+		t.Fatalf("SetActive: %v", err)
+	}
+
+	old := time.Now().Add(-30 * 24 * time.Hour).UTC()
+	incoming := []Profile{
+		{Name: "work", Type: TypeAPIKey, CreatedAt: old, UpdatedAt: old},      // conflicts
+		{Name: "personal", Type: TypeRawJSON, CreatedAt: old, UpdatedAt: old}, // new
+	}
+
+	res, err := s.Import(incoming, false)
+	if err != nil {
+		t.Fatalf("Import: %v", err)
+	}
+	if len(res.Imported) != 1 || res.Imported[0] != "personal" {
+		t.Fatalf("Imported = %v, want [personal]", res.Imported)
+	}
+	if len(res.Skipped) != 1 || res.Skipped[0] != "work" {
+		t.Fatalf("Skipped = %v, want [work]", res.Skipped)
+	}
+
+	p, err := s.Get("work")
+	if err != nil {
+		t.Fatalf("Get(work): %v", err)
+	}
+	if p.CreatedAt.Equal(old) {
+		t.Fatal("existing profile work was overwritten despite overwrite=false")
+	}
+
+	_, active, err := s.List()
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if active != "work" {
+		t.Fatalf("active = %q after import, want unchanged %q", active, "work")
+	}
+
+	res, err = s.Import(incoming, true)
+	if err != nil {
+		t.Fatalf("Import with overwrite: %v", err)
+	}
+	if len(res.Imported) != 2 {
+		t.Fatalf("Imported = %v, want both profiles overwritten/added", res.Imported)
+	}
+	if len(res.Skipped) != 0 {
+		t.Fatalf("Skipped = %v, want none with overwrite=true", res.Skipped)
+	}
+
+	p, err = s.Get("work")
+	if err != nil {
+		t.Fatalf("Get(work): %v", err)
+	}
+	if !p.CreatedAt.Equal(old) {
+		t.Fatalf("work.CreatedAt = %v after overwrite, want preserved import timestamp %v", p.CreatedAt, old)
+	}
+}
+
 func TestPromptIntegrationEnabled(t *testing.T) {
 	s := newTestStore(t)
 

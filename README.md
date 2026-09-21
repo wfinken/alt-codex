@@ -64,6 +64,10 @@ CLI and gives every account a name, a badge, and a single keystroke.
   **manual** just flags the `⟳ Needs re-auth` badge and waits for you to
   press `l` whenever you're ready. `l` re-authenticates the selected
   profile in place any time, in any mode.
+- 💾 **Encrypted import/export** — `alt-codex export backup.enc` bundles every
+  profile's metadata and secret into one passphrase-encrypted file; `alt-codex
+  import backup.enc` restores them on this machine or a new one. See
+  [Backup: encrypted import/export](#backup-encrypted-importexport).
 - 🖥️ **Cross-platform** — macOS, Linux, and Windows.
 
 ## Install
@@ -238,11 +242,37 @@ alt_codex_prompt() {
 }
 ```
 
-## Roadmap
+## Backup: encrypted import/export
 
-- [x] Auto-refresh tokens nearing expiration (silent renewal + `l`/`m` re-auth controls; `r` toggles dashboard auto-refresh)
-- [x] Shell prompt integration (`alt-codex current` + bash/zsh/fish/starship snippets above)
-- [ ] Encrypted import/export for backing up profiles
+`alt-codex export` bundles every profile's metadata *and* its secret into a
+single AES-256-GCM encrypted file, protected by a passphrase you choose on
+the spot — never stored anywhere, so write it down. Nothing is written in
+plaintext at any point.
+
+```sh
+$ alt-codex export backup.enc
+Export passphrase:
+Confirm passphrase:
+Exported 3 profile(s) to backup.enc
+```
+
+`alt-codex import` restores from that file, on the same machine or a new
+one. A profile whose name already exists locally is left alone unless you
+pass `--overwrite`, so restoring a backup can never silently clobber newer
+work:
+
+```sh
+$ alt-codex import backup.enc
+Import passphrase:
+Imported 2 profile(s), skipped 1 already present (use --overwrite to replace): work
+
+$ alt-codex import --overwrite backup.enc
+Imported 3 profile(s)
+```
+
+Both commands read the passphrase from the `ALT_CODEX_PASSPHRASE`
+environment variable when set (handy for scripting), and prompt for it
+without echoing otherwise.
 
 ## Contributing
 
