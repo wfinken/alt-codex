@@ -75,7 +75,8 @@ CLI and gives every account a name, a badge, and a single keystroke.
 ### Homebrew (macOS/Linux)
 
 ```sh
-brew install wfinken/tap/alt-codex
+brew tap wfinken/tap
+brew install alt-codex
 ```
 
 ### APT (Debian/Ubuntu)
